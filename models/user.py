@@ -6,6 +6,6 @@ class CustomUser(models.Model):
 
     name = fields.Char(string='Name', required=True)
     login = fields.Char(string='Email', required=True)
-    password = fields.Char(string='Password')
+    password = fields.Char(string='Password', required=True)
     phone = fields.Char(string='Phone')
-    groups_id = fields.Many2many('res.groups', string='User Groups')
+    groups_id = fields.Many2many('res.groups', string='Groups')

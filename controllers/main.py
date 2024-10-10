@@ -8,11 +8,11 @@ _logger = logging.getLogger(__name__)
 
 class HelloWorldController(http.Controller):
     
-    @http.route('/hello_world', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/hello_world', type='json', auth='none', methods=['POST'], csrf=False)
     def hello_world(self, **kwargs):
         return "Hello, World from Odoo!"
     
-    @http.route('/test', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/test', type='json', auth='none', methods=['POST'], csrf=False)
     def test_data(self, **kwargs):
         # Dummy data array
         data = [
@@ -24,7 +24,7 @@ class HelloWorldController(http.Controller):
         ]
         return data
 
-    @http.route('/airplanes', type='json', auth='public', methods=['GET'], csrf=False)
+    @http.route('/airplanes', type='json', auth='none', methods=['GET'], csrf=False)
     def get_airplanes(self, **kwargs):
         # Dummy airplane data
         airplanes = [
@@ -36,7 +36,7 @@ class HelloWorldController(http.Controller):
         ]
         return airplanes
 
-    @http.route('/api/user/register', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/user/register', type='json', auth='none', methods=['POST'], csrf=False)
     def register_user(self):
         post = request.jsonrequest
         name = post.get('name')
@@ -45,21 +45,21 @@ class HelloWorldController(http.Controller):
         phone = post.get('phone', False)
         groups = post.get('groups', [])
 
-        # Validasi bidang yang diperlukan
+        # Validate required fields
         if not name or not email or not password:
             return {'status': 'error', 'message': 'Missing required fields: name, email, password'}
 
-        # Cek pengguna yang ada
+        # Check for existing user
         existing_user = request.env['custom.user'].sudo().search([('login', '=', email)], limit=1)
         if existing_user:
             return {'status': 'error', 'message': 'Email is already registered'}
 
         try:
-            # Buat pengguna baru
+            # Create new user
             user = request.env['custom.user'].sudo().create({
                 'name': name,
                 'login': email,
-                'password': generate_password_hash(password),  # Hash kata sandi
+                'password': generate_password_hash(password),  # Hash the password
                 'phone': phone,
                 'groups_id': [(6, 0, groups)],
             })
@@ -67,7 +67,6 @@ class HelloWorldController(http.Controller):
         except Exception as e:
             _logger.error("Error creating user: %s", str(e))
             return {'status': 'error', 'message': str(e)}
-
 
     @http.route('/api/user/update', type='json', auth='user', methods=['POST'], csrf=False)
     def update_user(self):
@@ -107,7 +106,7 @@ class HelloWorldController(http.Controller):
             _logger.error("Error updating user: %s", str(e))
             return {'status': 'error', 'message': str(e)}
 
-    @http.route('/api/user/login', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/user/login', type='json', auth='none', methods=['POST'], csrf=False)
     def login_user(self):
         post = request.jsonrequest
         _logger.info("Incoming request data for login: %s", post)
