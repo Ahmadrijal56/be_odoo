@@ -1,18 +1,19 @@
-import logging
+import json
 from odoo import http
 from odoo.http import request
-from werkzeug.security import generate_password_hash, check_password_hash
+import logging
+from werkzeug.security import generate_password_hash,check_password_hash
 
 # Configure logging
 _logger = logging.getLogger(__name__)
 
-class HelloWorldController(http.Controller):
+class UserController(http.Controller):
     
-    @http.route('/hello_world', type='json', auth='none', methods=['POST'], csrf=False)
+    @http.route('/hello_world', type='json', auth='public', methods=['POST'], csrf=False)
     def hello_world(self, **kwargs):
         return "Hello, World from Odoo!"
     
-    @http.route('/test', type='json', auth='none', methods=['POST'], csrf=False)
+    @http.route('/test', type='json', auth='public', methods=['POST'], csrf=False)
     def test_data(self, **kwargs):
         # Dummy data array
         data = [
@@ -24,7 +25,7 @@ class HelloWorldController(http.Controller):
         ]
         return data
 
-    @http.route('/airplanes', type='json', auth='none', methods=['GET'], csrf=False)
+    @http.route('/airplanes', type='json', auth='public', methods=['GET'], csrf=False)
     def get_airplanes(self, **kwargs):
         # Dummy airplane data
         airplanes = [
@@ -34,32 +35,36 @@ class HelloWorldController(http.Controller):
             {"id": 4, "model": "Airbus A380", "airline": "Airways D", "capacity": 500},
             {"id": 5, "model": "Boeing 787", "airline": "Airways E", "capacity": 250},
         ]
-        return airplanes
+        return {"data" :airplanes}
+    
+    @http.route('/api/user/register', type='json', auth='public', methods=['POST'], csrf=False)
+    def register_user(self, **kwargs):
+        # Ambil data JSON dari permintaan
+        post_data = request.httprequest.data
+        post = json.loads(post_data)  # Ubah data menjadi JSON
 
-    @http.route('/api/user/register', type='json', auth='none', methods=['POST'], csrf=False)
-    def register_user(self):
-        post = request.jsonrequest
+        # Ambil data dari post
         name = post.get('name')
         email = post.get('email')
         password = post.get('password')
         phone = post.get('phone', False)
         groups = post.get('groups', [])
 
-        # Validate required fields
+        # Validasi field yang dibutuhkan
         if not name or not email or not password:
             return {'status': 'error', 'message': 'Missing required fields: name, email, password'}
 
-        # Check for existing user
+        # Cek apakah pengguna sudah ada
         existing_user = request.env['custom.user'].sudo().search([('login', '=', email)], limit=1)
         if existing_user:
             return {'status': 'error', 'message': 'Email is already registered'}
 
         try:
-            # Create new user
+            # Membuat pengguna baru
             user = request.env['custom.user'].sudo().create({
                 'name': name,
                 'login': email,
-                'password': generate_password_hash(password),  # Hash the password
+                'password': generate_password_hash(password),  # Hash password
                 'phone': phone,
                 'groups_id': [(6, 0, groups)],
             })
@@ -68,11 +73,14 @@ class HelloWorldController(http.Controller):
             _logger.error("Error creating user: %s", str(e))
             return {'status': 'error', 'message': str(e)}
 
-    @http.route('/api/user/update', type='json', auth='user', methods=['POST'], csrf=False)
-    def update_user(self):
-        post = request.jsonrequest
-        _logger.info("Incoming request data for update: %s", post)
 
+    @http.route('/api/user/update', type='json', auth='public', methods=['POST'], csrf=False)
+    def update_user(self, **kwargs):
+        # Ambil data JSON dari permintaan
+        post_data = request.httprequest.data
+        post = json.loads(post_data)  # Ubah data menjadi JSON
+
+        # Ambil data dari post
         user_id = post.get('user_id')
         name = post.get('name')
         email = post.get('email')
@@ -80,22 +88,23 @@ class HelloWorldController(http.Controller):
         phone = post.get('phone', False)
         groups = post.get('groups', [])
 
+        # Validasi field yang dibutuhkan
         if not user_id:
             return {'status': 'error', 'message': 'Missing required field: user_id'}
 
-        # Check if user exists
+        # Cek apakah pengguna ada
         user = request.env['custom.user'].sudo().search([('id', '=', user_id)], limit=1)
         if not user:
             return {'status': 'error', 'message': 'User not found'}
 
-        # Update user details
         try:
+            # Update informasi pengguna
             if name:
                 user.name = name
             if email:
                 user.login = email
             if password:
-                user.password = generate_password_hash(password)  # Hash the password
+                user.password = generate_password_hash(password)  # Hash password
             if phone:
                 user.phone = phone
             if groups:
@@ -106,23 +115,27 @@ class HelloWorldController(http.Controller):
             _logger.error("Error updating user: %s", str(e))
             return {'status': 'error', 'message': str(e)}
 
-    @http.route('/api/user/login', type='json', auth='none', methods=['POST'], csrf=False)
-    def login_user(self):
-        post = request.jsonrequest
-        _logger.info("Incoming request data for login: %s", post)
 
+    @http.route('/api/user/login', type='json', auth='public', methods=['POST'], csrf=False)
+    def login_user(self, **kwargs):
+        # Ambil data JSON dari permintaan
+        post_data = request.httprequest.data
+        post = json.loads(post_data)  # Ubah data menjadi JSON
+
+        # Ambil data dari post
         email = post.get('email')
         password = post.get('password')
 
+        # Validasi field yang dibutuhkan
         if not email or not password:
             return {'status': 'error', 'message': 'Missing required fields: email, password'}
 
-        # Authenticate the user
+        # Cek apakah pengguna ada
         user = request.env['custom.user'].sudo().search([('login', '=', email)], limit=1)
         if not user or not check_password_hash(user.password, password):
             return {'status': 'error', 'message': 'Invalid email or password'}
 
-        # Create a session
+        # Jika berhasil login, simpan id pengguna di session
         request.session.uid = user.id
 
         return {
@@ -131,3 +144,4 @@ class HelloWorldController(http.Controller):
             'user_id': user.id,
             'user_name': user.name,
         }
+

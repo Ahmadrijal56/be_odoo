@@ -23,7 +23,7 @@
                     <group>
                         <field name="name"/>
                         <field name="login"/>
-                        <field name="password"/>
+                        <field name="password" password="True"/> <!-- Sembunyikan field password -->
                         <field name="phone"/>
                         <field name="groups_id" widget="many2many_tags" options="{'no_create': True}"/>
                     </group>
